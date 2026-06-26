@@ -753,10 +753,8 @@ function switchMonth(mi){
 }
 
 // ── SUPABASE CONFIG ──────────────────────────────────────────────
-// ↓↓↓ ضع بياناتك من Supabase هنا ↓↓↓
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_KEY = 'YOUR_ANON_KEY';
-// ↑↑↑ ضع بياناتك من Supabase هنا ↑↑↑
+const SUPABASE_URL = 'https://mtdafpharklyntxqvhdr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10ZGFmcGhhcmtseW50eHF2aGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0OTc2MDksImV4cCI6MjA5ODA3MzYwOX0.MigCWRhG-kRhB8tokKwf0w-xWzU8O_lnfJxVtpfm6tg';
 
 const SB = {
   async getAll() {
@@ -797,7 +795,7 @@ function showSync(msg, color='#27ae60') {
   if (!el) {
     el = document.createElement('span');
     el.id = 'syncStatus';
-    el.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:4px;transition:opacity 0.4s;';
+    el.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:4px;transition:opacity 0.5s;margin-left:6px;';
     document.querySelector('.controls').appendChild(el);
   }
   el.textContent = msg;
@@ -805,19 +803,20 @@ function showSync(msg, color='#27ae60') {
   el.style.color = color;
   el.style.opacity = '1';
   clearTimeout(el._t);
-  if (color === '#27ae60') el._t = setTimeout(() => el.style.opacity = '0', 2000);
+  if (color === '#27ae60') el._t = setTimeout(() => el.style.opacity = '0', 2500);
 }
 
 // ── PERSIST ──────────────────────────────────────────────────────
 async function save(changedKey) {
-  showSync('⏳ جاري الحفظ...', '#e67e22');
-  const ev = data[changedKey];
-  if (ev) {
-    await SB.upsert(changedKey, ev.type, ev.map || '');
-  } else {
-    await SB.remove(changedKey);
+  showSync('⏳ حفظ...', '#e67e22');
+  try {
+    const ev = data[changedKey];
+    if (ev) await SB.upsert(changedKey, ev.type, ev.map || '');
+    else     await SB.remove(changedKey);
+    showSync('✓ تم الحفظ');
+  } catch(e) {
+    showSync('⚠️ فشل الحفظ', '#e74c3c');
   }
-  showSync('✓ تم الحفظ');
 }
 
 async function clearAll() {
@@ -831,36 +830,39 @@ async function clearAll() {
 
 // ── LOAD FROM SUPABASE ───────────────────────────────────────────
 async function loadData() {
-  showSync('⏳ جاري التحميل...', '#3498db');
+  showSync('⏳ تحميل...', '#3498db');
   try {
     const rows = await SB.getAll();
     data = {};
     rows.forEach(r => { data[r.key] = { type: r.event_type, map: r.map || '' }; });
-    showSync('✓ تم التحميل');
+    showSync('✓ جاهز');
   } catch(e) {
     showSync('⚠️ تعذر الاتصال', '#e74c3c');
+    data = {};
   }
   build();
 }
 
-// ── LIVE SYNC (polling every 8 seconds) ─────────────────────────
-let _lastKeys = '';
+// ── LIVE SYNC (polling every 10 seconds) ────────────────────────
+let _lastHash = '';
 async function pollUpdates() {
   try {
     const rows = await SB.getAll();
-    const newKeys = JSON.stringify(rows.sort((a,b)=>a.key>b.key?1:-1));
-    if (newKeys !== _lastKeys) {
-      _lastKeys = newKeys;
-      const activeTab = document.querySelector('.nav-tab.active')?.dataset?.mi || 0;
+    const hash = JSON.stringify(rows.sort((a,b)=>a.key>b.key?1:-1));
+    if (hash !== _lastHash && _lastHash !== '') {
+      _lastHash = hash;
+      const mi = document.querySelector('.nav-tab.active')?.dataset?.mi || 0;
       data = {};
       rows.forEach(r => { data[r.key] = { type: r.event_type, map: r.map || '' }; });
       build();
-      document.querySelectorAll('.nav-tab')[activeTab]?.click();
-      showSync('🔄 تم التحديث', '#3498db');
+      document.querySelectorAll('.nav-tab')[mi]?.click();
+      showSync('🔄 تحديث', '#3498db');
+    } else {
+      _lastHash = hash;
     }
   } catch(e) {}
 }
-setInterval(pollUpdates, 8000);
+setInterval(pollUpdates, 10000);
 
 // ── TIME FORMAT ──────────────────────────────────────────────────</script>
 </body>
