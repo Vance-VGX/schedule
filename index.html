@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:#1a1a2e;
+  color:#e0e0e0;
+  font-family:'Segoe UI',Arial,sans-serif;
+  padding:20px;
+}
+
+.page-title {
+  background:#0d0d1f;
+  color:#fff;
+  text-align:center;
+  padding:12px;
+  font-size:13px;
+  border:1px solid #2a2a4a;
+  margin-bottom:0;
+  border-radius:4px 4px 0 0;
+}
+
+.controls {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  padding:10px 14px;
+  background:#0f0f1a;
+  border:1px solid #2a2a4a;
+  border-top:none;
+  border-radius:0 0 4px 4px;
+  margin-bottom:14px;
+}
+
+.controls label { color:#a0a0c0; font-size:12px; }
+
+.controls select {
+  background:#1e1e3a;
+  color:#e0e0e0;
+  border:1px solid #3a3a6a;
+  padding:5px 10px;
+  border-radius:4px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.toggle-btn {
+  background:#1e1e3a;
+  color:#a0a0c0;
+  border:1px solid #3a3a6a;
+  padding:5px 13px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  transition:all 0.2s;
+}
+.toggle-btn.active { background:#e67e22; color:#fff; border-color:#e67e22; }
+
+.add-btn {
+  background:#e67e22;
+  color:#fff;
+  border:none;
+  padding:5px 14px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  transition:background 0.2s;
+}
+.add-btn:hover { background:#cf6d17; }
+
+.clear-btn {
+  background:#2a0a0a;
+  color:#e74c3c;
+  border:1px solid #5a1a1a;
+  padding:5px 12px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+}
+.clear-btn:hover { background:#3a0a0a; }
+
+/* Stats */
+.stats-bar {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.stat-box {
+  background:#0d0d1f;
+  border:1px solid #2a2a4a;
+  border-radius:4px;
+  padding:8px 14px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-width:70px;
+}
+.stat-box .s-label { color:#5555aa; font-size:10px; margin-bottom:2px; }
+.stat-box .s-val { font-size:18px; font-weight:bold; }
+.c-total { color:#e0e0ff; }
+.c-win   { color:#27ae60; }
+.c-loss  { color:#e74c3c; }
+.c-draw  { color:#f1c40f; }
+.c-scrim { color:#9b59b6; }
+.c-warm  { color:#3498db; }
+.c-cancel{ color:#7f8c8d; }
+.c-rate  { color:#e67e22; }
+.c-prac  { color:#1abc9c; }
+.c-rev   { color:#f39c12; }
+.c-vod   { color:#8e44ad; }
+.c-meet  { color:#16a085; }
+.c-break { color:#c0392b; }
+.c-other { color:#95a5a6; }
+.c-map   { color:#a0a0c0; font-size:12px !important; background:#1a1a3a; padding:2px 6px; border-radius:3px; }
+
+/* Tabs */
+.nav-tabs {
+  display:flex;
+  gap:3px;
+  overflow-x:auto;
+  padding-bottom:0;
+  margin-bottom:-1px;
+}
+.nav-tab {
+  background:#0a0a1a;
+  color:#5555aa;
+  border:1px solid #2a2a4a;
+  border-bottom:none;
+  padding:6px 14px;
+  border-radius:4px 4px 0 0;
+  cursor:pointer;
+  font-size:11px;
+  white-space:nowrap;
+  transition:all 0.2s;
+}
+.nav-tab.active { background:#1a1a3a; color:#e67e22; border-color:#3a3a6a; }
+.nav-tab:hover:not(.active) { background:#111125; color:#8888cc; }
+
+.section { display:none; }
+.section.active { display:block; }
+
+.month-wrapper {
+  border:1px solid #2a2a4a;
+  border-radius:0 4px 4px 4px;
+  padding:14px;
+  background:#0f0f1f;
+}
+
+/* Week */
+.week-block { margin-bottom:22px; }
+
+.week-header {
+  background:#0d1117;
+  color:#fff;
+  text-align:center;
+  padding:10px;
+  font-size:24px;
+  font-weight:bold;
+  border:1px solid #2a2a4a;
+  border-bottom:none;
+}
+.week-dates {
+  background:#0d1117;
+  color:#666699;
+  text-align:center;
+  padding:4px;
+  font-size:11px;
+  border:1px solid #2a2a4a;
+  border-bottom:none;
+}
+
+.tbl-wrap { overflow-x:auto; }
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  min-width:700px;
+}
+
+thead th {
+  background:#12122a;
+  color:#c0c0e0;
+  text-align:center;
+  padding:7px 8px;
+  font-size:12px;
+  font-weight:600;
+  border:1px solid #2a2a4a;
+}
+thead th.th-time {
+  background:#0d0d1f;
+  color:#555588;
+  width:90px;
+}
+thead th.th-free {
+  background:#0d0d1f;
+  width:44px;
+}
+
+tbody tr:nth-child(odd)  { background:#0d0d22; }
+tbody tr:nth-child(even) { background:#111128; }
+tbody tr:hover { background:#1a1a38; }
+
+tbody td {
+  border:1px solid #1a1a38;
+  text-align:center;
+  padding:4px 6px;
+  font-size:12px;
+  height:30px;
+}
+td.td-time {
+  color:#666699;
+  font-family:monospace;
+  font-size:12px;
+  background:#0a0a1e;
+  white-space:nowrap;
+}
+td.td-free {
+  background:#0a0a1e;
+  color:#222244;
+  font-size:20px;
+  font-weight:bold;
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+  transform:rotate(180deg);
+  letter-spacing:3px;
+  padding:0 4px;
+  border:1px solid #1a1a38;
+}
+
+/* Event cell types */
+td.ev-cell {
+  font-weight:bold;
+  font-size:10px;
+  cursor:pointer;
+  border-radius:2px;
+  transition:filter 0.15s;
+  position:relative;
+}
+td.ev-cell:hover { filter:brightness(1.2); }
+
+td.ev-faceit   { background:#e67e22; color:#fff; }
+td.ev-win      { background:#1a4a2a; color:#2ecc71; border:1px solid #2ecc71 !important; }
+td.ev-loss     { background:#4a1a1a; color:#e74c3c; border:1px solid #e74c3c !important; }
+td.ev-draw     { background:#3a3a1a; color:#f1c40f; border:1px solid #f1c40f !important; }
+td.ev-scrim    { background:#2a1a4a; color:#9b59b6; border:1px solid #9b59b6 !important; }
+td.ev-warmup   { background:#1a2a4a; color:#3498db; border:1px solid #3498db !important; }
+td.ev-practice { background:#1a3a2a; color:#1abc9c; border:1px solid #1abc9c !important; }
+td.ev-review   { background:#2a2a1a; color:#f39c12; border:1px solid #f39c12 !important; }
+td.ev-vod      { background:#1a1a3a; color:#8e44ad; border:1px solid #8e44ad !important; }
+td.ev-meeting  { background:#1a2a3a; color:#16a085; border:1px solid #16a085 !important; }
+td.ev-break    { background:#2a1a1a; color:#c0392b; border:1px solid #c0392b !important; }
+td.ev-other    { background:#252525; color:#95a5a6; border:1px solid #95a5a6 !important; }
+td.ev-canceled { background:#1e1e1e; color:#555; border:1px solid #333 !important; text-decoration:line-through; }
+
+td.ev-cell .ev-map {
+  display:block;
+  font-size:9px;
+  opacity:0.7;
+  margin-top:1px;
+  font-weight:normal;
+}
+
+td.empty-cell { cursor:pointer; }
+td.empty-cell:hover { background:#1e1e3a; }
+
+/* Right-click menu */
+.ctx-menu {
+  display:none;
+  position:fixed;
+  background:#12122a;
+  border:1px solid #3a3a6a;
+  border-radius:6px;
+  min-width:160px;
+  z-index:999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.6);
+  overflow:hidden;
+}
+.ctx-menu.show { display:block; }
+.ctx-item {
+  padding:8px 14px;
+  cursor:pointer;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  transition:background 0.15s;
+}
+.ctx-item:hover { background:#1e1e3a; }
+.ctx-item .dot {
+  width:10px; height:10px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.ctx-sep { border-top:1px solid #2a2a4a; margin:3px 0; }
+
+/* Modal */
+.modal-overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.75);
+  z-index:200;
+  align-items:center;
+  justify-content:center;
+}
+.modal-overlay.active { display:flex; }
+.modal {
+  background:#12122a;
+  border:1px solid #3a3a6a;
+  border-radius:8px;
+  padding:22px;
+  min-width:300px;
+  max-width:400px;
+  width:90%;
+}
+.modal h3 { color:#e67e22; margin-bottom:14px; font-size:15px; }
+.modal label { display:block; color:#8888aa; font-size:11px; margin-top:10px; margin-bottom:3px; }
+.modal select, .modal input {
+  width:100%;
+  background:#1e1e3a;
+  color:#e0e0e0;
+  border:1px solid #3a3a6a;
+  padding:7px 10px;
+  border-radius:4px;
+  font-size:12px;
+}
+.modal-btns { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
+.btn-save { background:#e67e22; color:#fff; border:none; padding:7px 18px; border-radius:4px; cursor:pointer; font-size:12px; }
+.btn-cancel { background:#2a2a4a; color:#a0a0c0; border:none; padding:7px 18px; border-radius:4px; cursor:pointer; font-size:12px; }
+
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:#0d0d1f; }
+::-webkit-scrollbar-thumb { background:#3a3a6a; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">All times and regions listed in the schedule apply to the Kingdom of Saudi Arabia.</div>
+
+<div class="controls">
+  <label>Time:</label>
+  <button class="toggle-btn active" id="btn24" onclick="setFmt(24)">24H</button>
+  <button class="toggle-btn" id="btn12" onclick="setFmt(12)">12H</button>
+  <label style="margin-left:8px">Month:</label>
+  <select id="monthJump" onchange="switchMonth(+this.value)">
+  </select>
+  <button class="add-btn" onclick="openModal()">+ Add Event</button>
+  <button class="clear-btn" onclick="clearAll()">Clear All</button>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="nav-tabs" id="navTabs"></div>
+
+<div id="mainContainer"></div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctxMenu"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Add Event</h3>
+    <label>Week</label>
+    <select id="mWeek"></select>
+    <label>Day</label>
+    <select id="mDay">
+      <option>Saturday</option><option>Sunday</option>
+      <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option>
+    </select>
+    <label>Time Slot</label>
+    <select id="mSlot"></select>
+    <label>Event Type</label>
+    <select id="mType">
+      <option value="faceit">FACEIT Match</option>
+      <option value="scrim">Scrim</option>
+      <option value="warmup">Warm Up</option>
+      <option value="practice">Practice</option>
+      <option value="review">VOD Review</option>
+      <option value="vod">Food Review</option>
+      <option value="meeting">Meeting</option>
+      <option value="break">Break</option>
+      <option value="other">Other</option>
+    </select>
+    <label>Map (optional)</label>
+    <input type="text" id="mMap" placeholder="e.g. Oasis, Rialto...">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const START     = new Date(2026, 5, 26);   // June 26 2026
+const MONTHS    = 10;
+const DAYS      = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+const SLOTS     = ['16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','00:00','01:00','02:00'];
+
+// event types config
+const EV = {
+  faceit:   { label:'FACEIT MATCH', cls:'ev-faceit',   dot:'#e67e22' },
+  win:      { label:'WIN',          cls:'ev-win',      dot:'#27ae60' },
+  loss:     { label:'LOSS',         cls:'ev-loss',     dot:'#e74c3c' },
+  draw:     { label:'DRAW',         cls:'ev-draw',     dot:'#f1c40f' },
+  scrim:    { label:'SCRIM',        cls:'ev-scrim',    dot:'#9b59b6' },
+  warmup:   { label:'WARM UP',      cls:'ev-warmup',   dot:'#3498db' },
+  practice: { label:'PRACTICE',     cls:'ev-practice', dot:'#1abc9c' },
+  review:   { label:'VOD REVIEW',   cls:'ev-review',   dot:'#f39c12' },
+  vod:      { label:'FOOD REVIEW',  cls:'ev-vod',      dot:'#8e44ad' },
+  meeting:  { label:'MEETING',      cls:'ev-meeting',  dot:'#16a085' },
+  break:    { label:'BREAK',        cls:'ev-break',    dot:'#c0392b' },
+  other:    { label:'OTHER',        cls:'ev-other',    dot:'#95a5a6' },
+  canceled: { label:'CANCELED',     cls:'ev-canceled', dot:'#555555' },
+};
+
+// right-click options per event state
+const CTX_ADD = [
+  { type:'faceit',   label:'FACEIT Match' },
+  { type:'scrim',    label:'Scrim' },
+  { type:'warmup',   label:'Warm Up' },
+  { type:'practice', label:'Practice' },
+  { type:'review',   label:'VOD Review' },
+  { type:'vod',      label:'Food Review' },
+  { type:'meeting',  label:'Meeting' },
+  { type:'break',    label:'Break' },
+  { type:'other',    label:'Other' },
+];
+const CTX_ON_EVENT = [
+  { type:'win',      label:'Mark WIN' },
+  { type:'loss',     label:'Mark LOSS' },
+  { type:'draw',     label:'Mark DRAW' },
+  { type:'canceled', label:'Mark Canceled' },
+  { type:'__delete', label:'Delete', dot:'#c0392b' },
+];
+
+let timeFmt = 24;
+let data = JSON.parse(localStorage.getItem('sched_v2') || '{}');
+// data[key] = { type, map }
+
+// ── TIME HELPERS ────────────────────────────────────────────────
+function to12(t) {
+  const [h,m] = t.split(':').map(Number);
+  const s = h>=12?'PM':'AM', h12=h%12||12;
+  return `${h12}:${String(m).padStart(2,'0')} ${s}`;
+}
+function disp(t) { return timeFmt===12 ? to12(t) : t; }
+
+// ── DATE HELPERS ────────────────────────────────────────────────
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function fmtDate(d){ return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`; }
+function monthName(d){ return d.toLocaleString('en-US',{month:'long',year:'numeric'}); }
+
+// ── GENERATE WEEKS ──────────────────────────────────────────────
+function genWeeks() {
+  const weeks=[];
+  // start from the Friday on or before START
+  let cur = new Date(START);
+  while(cur.getDay()!==5) cur=addDays(cur,-1);
+  const end = addDays(START, MONTHS*31);
+  let n=1;
+  while(cur<end){ weeks.push({num:n,start:new Date(cur),end:addDays(cur,6)}); cur=addDays(cur,7); n++; }
+  return weeks;
+}
+
+// ── KEY ─────────────────────────────────────────────────────────
+function key(wn,day,slot){ return `${wn}|${day}|${slot}`; }
+
+// ── BUILD UI ────────────────────────────────────────────────────
+function build() {
+  const weeks = genWeeks();
+  const tabs  = document.getElementById('navTabs');
+  const main  = document.getElementById('mainContainer');
+  const jump  = document.getElementById('monthJump');
+  const mWeek = document.getElementById('mWeek');
+  tabs.innerHTML=''; main.innerHTML=''; jump.innerHTML=''; mWeek.innerHTML='';
+
+  // group by month
+  const groups={}, order=[];
+  weeks.forEach(w=>{
+    const mk=monthName(w.start);
+    if(!groups[mk]){ groups[mk]=[]; order.push(mk); }
+    groups[mk].push(w);
+  });
+
+  order.forEach((mk,mi)=>{
+    // tab
+    const tab=document.createElement('div');
+    tab.className='nav-tab'+(mi===0?' active':'');
+    tab.textContent=mk; tab.dataset.mi=mi;
+    tab.onclick=()=>switchMonth(mi);
+    tabs.appendChild(tab);
+
+    // jump opt
+    const o=document.createElement('option');
+    o.value=mi; o.textContent=mk;
+    jump.appendChild(o);
+
+    // section
+    const sec=document.createElement('div');
+    sec.className='section'+(mi===0?' active':'');
+    sec.id='sec-'+mi;
+    const mw=document.createElement('div');
+    mw.className='month-wrapper';
+
+    groups[mk].forEach(w=>{
+      // modal week option
+      const wo=document.createElement('option');
+      wo.value=w.num;
+      wo.textContent=`Week ${w.num}  (${fmtDate(w.start)} – ${fmtDate(w.end)})`;
+      mWeek.appendChild(wo);
+
+      mw.appendChild(buildWeek(w));
+    });
+
+    sec.appendChild(mw);
+    main.appendChild(sec);
+  });
+
+  // modal slot options
+  const mSlot=document.getElementById('mSlot');
+  mSlot.innerHTML='';
+  SLOTS.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; mSlot.appendChild(o); });
+
+  renderStats();
+}
+
+function buildWeek(w){
+  const block=document.createElement('div');
+  block.className='week-block';
+
+  block.innerHTML=`
+    <div class="week-header">Week ${w.num}</div>
+    <div class="week-dates">from ${fmtDate(w.start)} to ${fmtDate(w.end)}</div>
+  `;
+
+  const wrap=document.createElement('div'); wrap.className='tbl-wrap';
+  const tbl=document.createElement('table');
+
+  // head
+  const thead=document.createElement('thead');
+  const hr=document.createElement('tr');
+  // time col
+  const thT=document.createElement('th'); thT.className='th-time'; thT.textContent='Time'; hr.appendChild(thT);
+  // free col
+  const thF=document.createElement('th'); thF.className='th-free'; hr.appendChild(thF);
+  // day cols
+  DAYS.forEach(d=>{ const th=document.createElement('th'); th.textContent=d; hr.appendChild(th); });
+  thead.appendChild(hr); tbl.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+
+  SLOTS.forEach((slot,si)=>{
+    const tr=document.createElement('tr');
+
+    // time cell
+    const tdT=document.createElement('td');
+    tdT.className='td-time'; tdT.dataset.slot=slot;
+    tdT.textContent=disp(slot); tr.appendChild(tdT);
+
+    // free cell (rowspan on first row)
+    if(si===0){
+      const tdF=document.createElement('td');
+      tdF.className='td-free'; tdF.rowSpan=SLOTS.length; tdF.textContent='free';
+      tr.appendChild(tdF);
+    }
+
+    // day cells
+    DAYS.forEach(day=>{
+      const k=key(w.num,day,slot);
+      const td=document.createElement('td');
+      td.dataset.key=k;
+      applyCell(td,k);
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  block.appendChild(wrap);
+  return block;
+}
+
+function applyCell(td,k){
+  const ev=data[k];
+  if(ev){
+    const cfg=EV[ev.type];
+    td.className='ev-cell '+(cfg?cfg.cls:'ev-faceit');
+    td.innerHTML=(cfg?cfg.label:'?')+(ev.map?`<span class="ev-map">${ev.map}</span>`:'');
+  } else {
+    td.className='empty-cell'; td.innerHTML='';
+  }
+  td.oncontextmenu=(e)=>{ e.preventDefault(); showCtx(e,k,td); };
+  td.onclick=()=>{ if(!data[k]) quickSet(k,td,'faceit'); };
+}
+
+// ── QUICK SET (left click on empty) ─────────────────────────────
+function quickSet(k,td,type){
+  data[k]={type,map:''};
+  save(); applyCell(td,k); renderStats();
+}
+
+// ── CONTEXT MENU ────────────────────────────────────────────────
+let ctxTarget=null;
+function showCtx(e,k,td){
+  ctxTarget={k,td};
+  const menu=document.getElementById('ctxMenu');
+  menu.innerHTML='';
+  const ev=data[k];
+
+  const makeItem=(type,label,dot,action)=>{
+    const item=document.createElement('div');
+    item.className='ctx-item';
+    const d=document.createElement('span');
+    d.className='dot'; d.style.background=dot||'#888';
+    const l=document.createElement('span'); l.textContent=label;
+    item.appendChild(d); item.appendChild(l);
+    item.onclick=()=>{ action(); hideCtx(); };
+    return item;
+  };
+
+  if(!ev){
+    // empty cell: add options
+    const hdr=document.createElement('div');
+    hdr.style.cssText='padding:6px 14px;font-size:10px;color:#5555aa;';
+    hdr.textContent='Add Event'; menu.appendChild(hdr);
+    CTX_ADD.forEach(c=>{
+      menu.appendChild(makeItem(c.type,c.label,EV[c.type].dot,()=>{
+        data[k]={type:c.type,map:''}; save(); applyCell(td,k); renderStats();
+      }));
+    });
+  } else {
+    // existing event
+    const hdr=document.createElement('div');
+    hdr.style.cssText='padding:6px 14px;font-size:10px;color:#5555aa;';
+    hdr.textContent='Change Status'; menu.appendChild(hdr);
+    CTX_ON_EVENT.forEach(c=>{
+      const dot=c.dot||(EV[c.type]?EV[c.type].dot:'#888');
+      menu.appendChild(makeItem(c.type,c.label,dot,()=>{
+        if(c.type==='__delete'){ delete data[k]; }
+        else { data[k].type=c.type; }
+        save(); applyCell(td,k); renderStats();
+      }));
+    });
+    // map edit
+    const sep=document.createElement('div'); sep.className='ctx-sep'; menu.appendChild(sep);
+    menu.appendChild(makeItem('map','Edit Map..','#444',()=>{ editMap(k,td); }));
+  }
+
+  menu.style.left=Math.min(e.clientX,window.innerWidth-180)+'px';
+  menu.style.top =Math.min(e.clientY,window.innerHeight-300)+'px';
+  menu.classList.add('show');
+}
+
+function hideCtx(){ document.getElementById('ctxMenu').classList.remove('show'); }
+document.addEventListener('click', hideCtx);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') hideCtx(); });
+
+function editMap(k,td){
+  const cur=data[k]?.map||'';
+  const m=prompt('Map name:',cur);
+  if(m!==null){ data[k].map=m; save(); applyCell(td,k); }
+}
+
+// ── MODAL ───────────────────────────────────────────────────────
+function openModal(){ document.getElementById('modalOverlay').classList.add('active'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+function saveModal(){
+  const wn=document.getElementById('mWeek').value;
+  const day=document.getElementById('mDay').value;
+  const slot=document.getElementById('mSlot').value;
+  const type=document.getElementById('mType').value;
+  const map=document.getElementById('mMap').value.trim();
+  const k=key(wn,day,slot);
+  data[k]={type,map};
+  save(); build(); closeModal();
+}
+
+// ── STATS ────────────────────────────────────────────────────────
+function renderStats(){
+  const vals=Object.values(data);
+  const count=t=>vals.filter(v=>v.type===t).length;
+  const total=vals.length;
+  const wins=count('win'), losses=count('loss'), draws=count('draw');
+  const scrims=count('scrim'), warmups=count('warmup'), canceled=count('canceled');
+  const faceit=count('faceit'), practice=count('practice');
+  const review=count('review'), vod=count('vod'), meeting=count('meeting');
+  const brk=count('break'), other=count('other');
+  const played=wins+losses+draws;
+  const rate=played>0?Math.round(wins/played*100):0;
+
+  const mw={},ml={};
+  vals.forEach(v=>{ if(v.map){ if(v.type==='win')mw[v.map]=(mw[v.map]||0)+1; if(v.type==='loss')ml[v.map]=(ml[v.map]||0)+1; }});
+  const bestMap=Object.entries(mw).sort((a,b)=>b[1]-a[1])[0];
+  const worstMap=Object.entries(ml).sort((a,b)=>b[1]-a[1])[0];
+
+  const bar=document.getElementById('statsBar');
+  bar.innerHTML='';
+  const boxes=[
+    {label:'Total',     val:total,        cls:'c-total'},
+    {label:'FACEIT',    val:faceit,       cls:'c-rate'},
+    {label:'WIN',       val:wins,         cls:'c-win'},
+    {label:'LOSS',      val:losses,       cls:'c-loss'},
+    {label:'DRAW',      val:draws,        cls:'c-draw'},
+    {label:'Win Rate',  val:rate+'%',     cls:'c-rate'},
+    {label:'Scrim',     val:scrims,       cls:'c-scrim'},
+    {label:'Warm Up',   val:warmups,      cls:'c-warm'},
+    {label:'Practice',  val:practice,     cls:'c-prac'},
+    {label:'VOD Review',val:review,       cls:'c-rev'},
+    {label:'Food Rev',  val:vod,          cls:'c-vod'},
+    {label:'Meeting',   val:meeting,      cls:'c-meet'},
+    {label:'Break',     val:brk,          cls:'c-break'},
+    {label:'Other',     val:other,        cls:'c-other'},
+    {label:'Canceled',  val:canceled,     cls:'c-cancel'},
+    {label:'Best Map',  val:bestMap?bestMap[0]:'—',   cls:'c-map'},
+    {label:'Worst Map', val:worstMap?worstMap[0]:'—', cls:'c-map'},
+  ];
+  boxes.forEach(b=>{
+    const box=document.createElement('div'); box.className='stat-box';
+    box.innerHTML=`<div class="s-label">${b.label}</div><div class="s-val ${b.cls}">${b.val}</div>`;
+    bar.appendChild(box);
+  });
+}
+
+// ── TIME FORMAT ──────────────────────────────────────────────────
+function setFmt(f){
+  timeFmt=f;
+  document.getElementById('btn24').className='toggle-btn'+(f===24?' active':'');
+  document.getElementById('btn12').className='toggle-btn'+(f===12?' active':'');
+  document.querySelectorAll('.td-time').forEach(td=>{ td.textContent=disp(td.dataset.slot); });
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchMonth(mi){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab')[mi]?.classList.add('active');
+  document.getElementById('sec-'+mi)?.classList.add('active');
+  document.getElementById('monthJump').value=mi;
+}
+
+// ── PERSIST ──────────────────────────────────────────────────────
+function save(){ localStorage.setItem('sched_v2',JSON.stringify(data)); }
+function clearAll(){ if(confirm('Clear all events?')){ data={}; save(); build(); } }
+
+// ── INIT ─────────────────────────────────────────────────────────
+build();
+</script>
+</body>
+</html>
