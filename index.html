@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schedule</title>
+<title>Team Schedule</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -384,7 +384,6 @@ td.empty-cell:hover { background:#1e1e3a; }
       <option value="warmup">Warm Up</option>
       <option value="practice">Practice</option>
       <option value="review">VOD Review</option>
-      <option value="vod">Food Review</option>
       <option value="meeting">Meeting</option>
       <option value="break">Break</option>
       <option value="other">Other</option>
@@ -415,7 +414,6 @@ const EV = {
   warmup:   { label:'WARM UP',      cls:'ev-warmup',   dot:'#3498db' },
   practice: { label:'PRACTICE',     cls:'ev-practice', dot:'#1abc9c' },
   review:   { label:'VOD REVIEW',   cls:'ev-review',   dot:'#f39c12' },
-  vod:      { label:'FOOD REVIEW',  cls:'ev-vod',      dot:'#8e44ad' },
   meeting:  { label:'MEETING',      cls:'ev-meeting',  dot:'#16a085' },
   break:    { label:'BREAK',        cls:'ev-break',    dot:'#c0392b' },
   other:    { label:'OTHER',        cls:'ev-other',    dot:'#95a5a6' },
@@ -429,7 +427,6 @@ const CTX_ADD = [
   { type:'warmup',   label:'Warm Up' },
   { type:'practice', label:'Practice' },
   { type:'review',   label:'VOD Review' },
-  { type:'vod',      label:'Food Review' },
   { type:'meeting',  label:'Meeting' },
   { type:'break',    label:'Break' },
   { type:'other',    label:'Other' },
@@ -443,8 +440,10 @@ const CTX_ON_EVENT = [
 ];
 
 let timeFmt = 24;
-let data = JSON.parse(localStorage.getItem('sched_v2') || '{}');
-// data[key] = { type, map }
+let data = {};
+
+// ── INIT ─────────────────────────────────────────────────────────
+loadData();
 
 // ── TIME HELPERS ────────────────────────────────────────────────
 function to12(t) {
@@ -607,7 +606,7 @@ function applyCell(td,k){
 // ── QUICK SET (left click on empty) ─────────────────────────────
 function quickSet(k,td,type){
   data[k]={type,map:''};
-  save(); applyCell(td,k); renderStats();
+  save(k); applyCell(td,k); renderStats();
 }
 
 // ── CONTEXT MENU ────────────────────────────────────────────────
@@ -636,7 +635,7 @@ function showCtx(e,k,td){
     hdr.textContent='Add Event'; menu.appendChild(hdr);
     CTX_ADD.forEach(c=>{
       menu.appendChild(makeItem(c.type,c.label,EV[c.type].dot,()=>{
-        data[k]={type:c.type,map:''}; save(); applyCell(td,k); renderStats();
+        data[k]={type:c.type,map:''}; save(k); applyCell(td,k); renderStats();
       }));
     });
   } else {
@@ -649,7 +648,7 @@ function showCtx(e,k,td){
       menu.appendChild(makeItem(c.type,c.label,dot,()=>{
         if(c.type==='__delete'){ delete data[k]; }
         else { data[k].type=c.type; }
-        save(); applyCell(td,k); renderStats();
+        save(k); applyCell(td,k); renderStats();
       }));
     });
     // map edit
@@ -669,7 +668,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') hideCtx(); });
 function editMap(k,td){
   const cur=data[k]?.map||'';
   const m=prompt('Map name:',cur);
-  if(m!==null){ data[k].map=m; save(); applyCell(td,k); }
+  if(m!==null){ data[k].map=m; save(k); applyCell(td,k); }
 }
 
 // ── MODAL ───────────────────────────────────────────────────────
@@ -683,7 +682,12 @@ function saveModal(){
   const map=document.getElementById('mMap').value.trim();
   const k=key(wn,day,slot);
   data[k]={type,map};
-  save(); build(); closeModal();
+  save(k);
+  // update cell directly without full rebuild
+  const td = document.querySelector(`[data-key="${k}"]`);
+  if(td) applyCell(td,k);
+  renderStats();
+  closeModal();
 }
 
 // ── STATS ────────────────────────────────────────────────────────
@@ -694,7 +698,7 @@ function renderStats(){
   const wins=count('win'), losses=count('loss'), draws=count('draw');
   const scrims=count('scrim'), warmups=count('warmup'), canceled=count('canceled');
   const faceit=count('faceit'), practice=count('practice');
-  const review=count('review'), vod=count('vod'), meeting=count('meeting');
+  const review=count('review'), meeting=count('meeting');
   const brk=count('break'), other=count('other');
   const played=wins+losses+draws;
   const rate=played>0?Math.round(wins/played*100):0;
@@ -717,7 +721,6 @@ function renderStats(){
     {label:'Warm Up',   val:warmups,      cls:'c-warm'},
     {label:'Practice',  val:practice,     cls:'c-prac'},
     {label:'VOD Review',val:review,       cls:'c-rev'},
-    {label:'Food Rev',  val:vod,          cls:'c-vod'},
     {label:'Meeting',   val:meeting,      cls:'c-meet'},
     {label:'Break',     val:brk,          cls:'c-break'},
     {label:'Other',     val:other,        cls:'c-other'},
@@ -749,12 +752,116 @@ function switchMonth(mi){
   document.getElementById('monthJump').value=mi;
 }
 
-// ── PERSIST ──────────────────────────────────────────────────────
-function save(){ localStorage.setItem('sched_v2',JSON.stringify(data)); }
-function clearAll(){ if(confirm('Clear all events?')){ data={}; save(); build(); } }
+// ── SUPABASE CONFIG ──────────────────────────────────────────────
+// ↓↓↓ ضع بياناتك من Supabase هنا ↓↓↓
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_KEY = 'YOUR_ANON_KEY';
+// ↑↑↑ ضع بياناتك من Supabase هنا ↑↑↑
 
-// ── INIT ─────────────────────────────────────────────────────────
-build();
-</script>
+const SB = {
+  async getAll() {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/schedule?select=*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    return r.ok ? await r.json() : [];
+  },
+  async upsert(key, event_type, map) {
+    await fetch(`${SUPABASE_URL}/rest/v1/schedule`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ key, event_type, map: map || '' })
+    });
+  },
+  async remove(key) {
+    await fetch(`${SUPABASE_URL}/rest/v1/schedule?key=eq.${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+  },
+  async clear() {
+    await fetch(`${SUPABASE_URL}/rest/v1/schedule?key=neq.null`, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+  }
+};
+
+// ── SYNC INDICATOR ───────────────────────────────────────────────
+function showSync(msg, color='#27ae60') {
+  let el = document.getElementById('syncStatus');
+  if (!el) {
+    el = document.createElement('span');
+    el.id = 'syncStatus';
+    el.style.cssText = 'font-size:11px;padding:3px 10px;border-radius:4px;transition:opacity 0.4s;';
+    document.querySelector('.controls').appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.background = color + '22';
+  el.style.color = color;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  if (color === '#27ae60') el._t = setTimeout(() => el.style.opacity = '0', 2000);
+}
+
+// ── PERSIST ──────────────────────────────────────────────────────
+async function save(changedKey) {
+  showSync('⏳ جاري الحفظ...', '#e67e22');
+  const ev = data[changedKey];
+  if (ev) {
+    await SB.upsert(changedKey, ev.type, ev.map || '');
+  } else {
+    await SB.remove(changedKey);
+  }
+  showSync('✓ تم الحفظ');
+}
+
+async function clearAll() {
+  if (!confirm('Clear all events?')) return;
+  showSync('⏳ جاري المسح...', '#e74c3c');
+  data = {};
+  await SB.clear();
+  showSync('✓ تم المسح');
+  build();
+}
+
+// ── LOAD FROM SUPABASE ───────────────────────────────────────────
+async function loadData() {
+  showSync('⏳ جاري التحميل...', '#3498db');
+  try {
+    const rows = await SB.getAll();
+    data = {};
+    rows.forEach(r => { data[r.key] = { type: r.event_type, map: r.map || '' }; });
+    showSync('✓ تم التحميل');
+  } catch(e) {
+    showSync('⚠️ تعذر الاتصال', '#e74c3c');
+  }
+  build();
+}
+
+// ── LIVE SYNC (polling every 8 seconds) ─────────────────────────
+let _lastKeys = '';
+async function pollUpdates() {
+  try {
+    const rows = await SB.getAll();
+    const newKeys = JSON.stringify(rows.sort((a,b)=>a.key>b.key?1:-1));
+    if (newKeys !== _lastKeys) {
+      _lastKeys = newKeys;
+      const activeTab = document.querySelector('.nav-tab.active')?.dataset?.mi || 0;
+      data = {};
+      rows.forEach(r => { data[r.key] = { type: r.event_type, map: r.map || '' }; });
+      build();
+      document.querySelectorAll('.nav-tab')[activeTab]?.click();
+      showSync('🔄 تم التحديث', '#3498db');
+    }
+  } catch(e) {}
+}
+setInterval(pollUpdates, 8000);
+
+// ── TIME FORMAT ──────────────────────────────────────────────────</script>
 </body>
 </html>
